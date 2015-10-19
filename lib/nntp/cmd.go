@@ -31,6 +31,13 @@ func (c *Client) PostClose() error {
 	return nil
 }
 
+func (c *Client) Article(msgid string) error {
+	if _, e := c.Send("article <" + msgid + ">", []Expect{Expect{"201 ", false}}); e != nil {
+		return e
+	}
+	return nil
+}
+
 func (c *Client) Close() error {
 	c.Ready = false
 	// Ignore any err

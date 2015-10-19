@@ -115,6 +115,10 @@ func (c *Client) GetWriter() *bufio.Writer {
 	return c.w
 }
 
+func (c *Client) GetReader() *DotReader {
+	return NewDotReader(c.r, false)
+}
+
 func New(listen string, name string) *Client {
 	return &Client{
 		Name:   name,
