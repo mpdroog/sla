@@ -49,7 +49,7 @@ func zipAdd(w *zip.Writer, name string, path string) error {
 
 func headers(subject string, msgid string) string {
 	headers := "Message-ID: <" + msgid + ">" + nntp.EOF
-	headers += "Date: " + time.Now().String() + nntp.EOF
+	headers += "Date: " + time.Now().Format(time.RFC822) + nntp.EOF
 	headers += "Organization: Usenet.Farm" + nntp.EOF
 	headers += "Subject: " + subject + nntp.EOF
 	headers += "From: Usenet.Farm" + nntp.EOF
@@ -61,6 +61,8 @@ func headers(subject string, msgid string) string {
 func main() {
 	var verbose bool
 	flag.BoolVar(&verbose, "v", false, "Verbosity")
+	flag.Parse()
+
 	c := Config{
 		"news.usenet.farm:119",
 		"jethro", "jethro",
@@ -183,7 +185,7 @@ func main() {
 
 	xml := nzb.Build(subject, msgids)
 	if e := ioutil.WriteFile(
-		c.NzbDir + time.Now().Format("2006-01-02") + ".xml",
+		c.NzbDir + time.Now().Format("2006-01-02") + ".nzb",
 		[]byte(xml), 400,
 	); e != nil {
 		panic(e)
