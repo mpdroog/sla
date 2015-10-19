@@ -161,31 +161,35 @@ func main() {
 	}
 	artPerf := []string{}
 	lastPerf := time.Now()
+	part := make([]byte, articleSize)
 	for i := 0; i < parts; i++ {
 	 	if e := conn.Post(); e != nil {
 			panic(e)
 		}
-		part := buf.Next(articleSize)
+		n, e := buf.Read(part)
+		if e != nil {
+			panic(e)
+		}
 		msgid := RandStringRunes(16) + "@usenet.farm"
 
 		w := stream.NewCountWriter(conn.GetWriter())
 		if _, e := w.WriteString(headers(subject, msgid)); e != nil {
 			panic(e)
 		}
-		w.ResetWritten()
 
+		begin := (articleSize * i)
 		fileName := fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02"))
 		w.WriteString(fmt.Sprintf("=ybegin part=%d total=%d line=128 size=%d name=%s\r\n", i, parts, fileSize, fileName))
-		w.WriteString(fmt.Sprintf("=ypart begin=%d end=%d\r\n", (articleSize * i)+1, min((i+1) * articleSize, w.Written()) ))
+		w.WriteString(fmt.Sprintf("=ypart begin=%d end=%d\r\n", begin+1, int64(begin+n) ))
+
 		yencode.Encode(
 			part,
 			w,
 		)
 		h := crc32.NewIEEE()
 		h.Write(part)
-		w.WriteString(fmt.Sprintf("=yend size=%d part=%d pcrc32=%08X\r\n", w.Written(), i, h.Sum32()))
-
-		msgids[msgid] = w.Written()
+		w.WriteString(fmt.Sprintf("=yend size=%d part=%d pcrc32=%08X\r\n", n, i, h.Sum32()))
+		msgids[msgid] = int64(n)
 
 		if e := conn.PostClose(); e != nil {
 			panic(e)
