@@ -20,6 +20,7 @@ type Config struct {
 	Listen string // server:port
 	User string
 	Pass string
+	NzbDir string
 }
 
 func zipAdd(w *zip.Writer, name string, path string) error {
@@ -53,6 +54,33 @@ func main() {
 	c := Config{
 		"news.usenet.farm:119",
 		"jethro", "jethro",
+		"/usr/local/sla/retention/",
+	}
+	if !strings.HasSuffix(c.NzbDir, "/") {
+		c.NzbDir += "/"
+	}
+
+	// Permission check
+	{
+		stat, e := os.Stat(c.NzbDir)
+		if e != nil {
+			panic(e)
+		}
+		if !stat.IsDir() {
+			fmt.Println("Not a dir: " + c.NzbDir)
+			os.Exit(1)
+			return
+		}
+		if e := ioutil.WriteFile(
+			c.NzbDir + "check.txt",
+			[]byte("Write permission check."),
+			0400,
+		); e != nil {
+			panic(e)
+		}
+		if e := os.Remove(c.NzbDir + "check.txt"); e != nil {
+			panic(e)
+		}
 	}
 
 	fmt.Println("Building ZIP..")
@@ -137,16 +165,16 @@ func main() {
 
 	xml := nzb.Build(subject, msgids)
 	if e := ioutil.WriteFile(
-		"/usr/local/sla/retention/" + time.Now().Format("2006-01-02") + ".xml",
+		c.NzbDir + time.Now().Format("2006-01-02") + ".xml",
 		[]byte(xml), 400,
 	); e != nil {
 		panic(e)
 	}
 
 	fmt.Println(fmt.Sprintf(
-		"Perf: conn=%s, auth=%s, arts=%s",
+		"Perf: conn=%s, auth=%s, arts=[%s]",
 		perfInit.Sub(perfBegin).String(),
 		perfAuth.Sub(perfInit).String(),
-		strings.Join(artPerf, "-"),
+		strings.Join(artPerf, ","),
 	))
 }
