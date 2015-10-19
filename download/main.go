@@ -43,7 +43,7 @@ func main() {
 		c.NzbDir += "/"
 	}
 
-	arts, e := nzb.Open(c.NzbDir + time.Now().Format("2006-01-02") + "-1.nzb")
+	arts, e := nzb.Open(c.NzbDir + time.Now().Format("2006-01-02") + ".nzb")
 	if e != nil {
 		panic(e)
 	}
@@ -72,15 +72,10 @@ func main() {
 		conn.Article(segment.Msgid)
 		rawread := bufio.NewReader(conn.GetReader())
 
-		_, e := textproto.NewReader(rawread).ReadMIMEHeader()
+		_, e = textproto.NewReader(rawread).ReadMIMEHeader()
 		if e != nil {
 			panic(e)
 		}
-		l, e := rawread.ReadBytes('\n')
-		if e != nil {
-			panic(e)
-		}
-		fmt.Println("R: " + string(l))
 
 		buf := new(bytes.Buffer)
 		if _, e := io.Copy(buf, rawread); e != nil {
