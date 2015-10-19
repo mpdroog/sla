@@ -14,6 +14,8 @@ import (
 	"time"
 	"strings"
 	"io/ioutil"
+	"encoding/json"
+	"flag"
 )
 
 type Config struct {
@@ -21,6 +23,12 @@ type Config struct {
 	User string
 	Pass string
 	NzbDir string
+}
+
+type Perf struct {
+	Conn string
+	Auth string
+	Arts []string
 }
 
 func zipAdd(w *zip.Writer, name string, path string) error {
@@ -51,6 +59,8 @@ func headers(subject string, msgid string) string {
 }
 
 func main() {
+	var verbose bool
+	flag.BoolVar(&verbose, "v", false, "Verbosity")
 	c := Config{
 		"news.usenet.farm:119",
 		"jethro", "jethro",
@@ -83,7 +93,9 @@ func main() {
 		}
 	}
 
-	fmt.Println("Building ZIP..")
+	if verbose {
+		fmt.Println("Building ZIP..")
+	}
 	buf := new(bytes.Buffer)
 	{
 		w := zip.NewWriter(buf)
@@ -106,7 +118,9 @@ func main() {
 		}
 	}
 
-	fmt.Println("Connecting to nntp..")
+	if verbose {
+		fmt.Println("Connecting to nntp..")
+	}
 	conn := nntp.New(c.Listen, "1")
 	perfBegin := time.Now()
 	var perfInit, perfAuth time.Time
@@ -131,7 +145,9 @@ func main() {
 
 	msgids := make(map[string]int64)
 	subject := "Completion test " + time.Now().Format("2006-01-02")
-	fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, parts))
+	if verbose {
+		fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, parts))
+	}
 	artPerf := []string{}
 	lastPerf := time.Now()
 	for i := 0; i < parts; i++ {
@@ -158,7 +174,9 @@ func main() {
 		now := time.Now()
 		d := now.Sub(lastPerf).String()
 
-		fmt.Println(fmt.Sprintf("Posted " + msgid + " in " + d))
+		if verbose {
+			fmt.Println(fmt.Sprintf("Posted %s in %s", msgid, d))
+		}
 		artPerf = append(artPerf, d)
 		lastPerf = now
 	}
@@ -171,10 +189,15 @@ func main() {
 		panic(e)
 	}
 
-	fmt.Println(fmt.Sprintf(
-		"Perf: conn=%s, auth=%s, arts=[%s]",
-		perfInit.Sub(perfBegin).String(),
-		perfAuth.Sub(perfInit).String(),
-		strings.Join(artPerf, ","),
-	))
+	stat, e := json.Marshal(Perf{
+		Conn: perfInit.Sub(perfBegin).String(),
+		Auth: perfAuth.Sub(perfInit).String(),
+		Arts: artPerf,
+	})
+	if e != nil {
+		panic(e)
+	}
+	if _, e := os.Stdout.Write(stat); e != nil {
+		panic(e)
+	}
 }
