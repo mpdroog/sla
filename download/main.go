@@ -30,8 +30,9 @@ type Perf struct {
 }
 
 func main() {
-	var verbose bool
+	var verbose, skipyenc bool
 	flag.BoolVar(&verbose, "v", false, "Verbosity")
+	flag.BoolVar(&skipyenc, "y", false, "Skip yEnc decode")
 	flag.Parse()
 
 	c := Config{
@@ -82,9 +83,11 @@ func main() {
 			panic(e)
 		}
 
-		_, e = yenc.Decode(buf)
-		if e != nil {
-			panic(e)
+		if !skipyenc {
+			_, e = yenc.Decode(buf)
+			if e != nil {
+				panic(e)
+			}
 		}
 
 		now := time.Now()
