@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"flag"
+	"hash/crc32"
 )
 
 type Config struct {
@@ -56,6 +57,13 @@ func headers(subject string, msgid string) string {
 	headers += "Newsgroups: alt.binaries.test" + nntp.EOF
 	headers += nntp.EOF // End of header
 	return headers;
+}
+
+func min(a int, b int64) int {
+	if a < int(b) {
+		return a
+	}
+	return int(b)
 }
 
 func main() {
@@ -139,8 +147,9 @@ func main() {
 	}
 
 	articleSize := 768000 // 750kb
-	parts := buf.Len() / articleSize
-	mod := buf.Len() % articleSize
+	fileSize := buf.Len()
+	parts := fileSize / articleSize
+	mod := fileSize % articleSize
 	if mod != 0 {
 		parts++
 	}
@@ -163,10 +172,19 @@ func main() {
 		if _, e := w.WriteString(headers(subject, msgid)); e != nil {
 			panic(e)
 		}
+		w.ResetWritten()
+
+		fileName := fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02"))
+		w.WriteString(fmt.Sprintf("=ybegin part=%d total=%d line=128 size=%d name=%s\r\n", i, parts, fileSize, fileName))
+		w.WriteString(fmt.Sprintf("=ypart begin=%d end=%d\r\n", (articleSize * i)+1, min((i+1) * articleSize, w.Written()) ))
 		yencode.Encode(
 			part,
 			w,
 		)
+		h := crc32.NewIEEE()
+		h.Write(part)
+		w.WriteString(fmt.Sprintf("=yend size=%d part=%d pcrc32=%08X\r\n", w.Written(), i, h.Sum32()))
+
 		msgids[msgid] = w.Written()
 
 		if e := conn.PostClose(); e != nil {
