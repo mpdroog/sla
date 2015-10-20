@@ -176,6 +176,7 @@ func main() {
 		if _, e := w.WriteString(headers(subject, msgid)); e != nil {
 			panic(e)
 		}
+		w.ResetWritten()
 
 		begin := (articleSize * i)
 		fileName := fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02"))
@@ -189,7 +190,7 @@ func main() {
 		h := crc32.NewIEEE()
 		h.Write(part)
 		w.WriteString(fmt.Sprintf("=yend size=%d part=%d pcrc32=%08X\r\n", n, i, h.Sum32()))
-		msgids[msgid] = int64(n)
+		msgids[msgid] = w.Written()
 
 		if e := conn.PostClose(); e != nil {
 			panic(e)
