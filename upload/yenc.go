@@ -3,6 +3,19 @@ package main
 
 import "fmt"
 
+const ARTICLE_SIZE = 768000 // 750kb
+
+func yencParts(fileSize int) int {
+	parts := fileSize / ARTICLE_SIZE
+	mod := fileSize % ARTICLE_SIZE
+
+	// Add one part for smaller than 750kb
+	if mod != 0 {
+		parts++
+	}
+	return parts
+}
+
 func yencHeader(part, parts, fileSize int, fileName string) string {
 	return fmt.Sprintf("=ybegin part=%d total=%d line=128 size=%d name=%s\r\n", part, parts, fileSize, fileName)
 }

@@ -168,13 +168,8 @@ func main() {
 		perfAuth = time.Now()
 	}
 
-	articleSize := 768000 // 750kb
 	fileSize := buf.Len()
-	parts := fileSize / articleSize
-	mod := fileSize % articleSize
-	if mod != 0 {
-		parts++
-	}
+	parts := yencParts(fileSize)
 	if parts < 50 {
 		fmt.Printf("Need at least 50 parts, I got: %d (increase rand file?)\n", parts)
 		os.Exit(1)
@@ -187,7 +182,7 @@ func main() {
 	}
 	artPerf := []ArtPerf{}
 	lastPerf := time.Now()
-	part := make([]byte, articleSize)
+	part := make([]byte, ARTICLE_SIZE)
 	for i := 0; i < parts; i++ {
 	 	if e := conn.Post(); e != nil {
 			panic(e)
@@ -204,7 +199,7 @@ func main() {
 		}
 		w.ResetWritten()
 
-		begin := (articleSize * i)
+		begin := (ARTICLE_SIZE * i)
 		fileName := fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02"))
 		w.WriteString(yencHeader(i, parts, fileSize, fileName))
 		w.WriteString(yencPart(begin+1, begin+n))

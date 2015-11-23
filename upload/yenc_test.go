@@ -4,6 +4,18 @@ import (
 	"testing"
 )
 
+func TestYencParts(t *testing.T) {
+	if yencParts(1) != 1 {
+		t.Errorf("yenc parts(1) wrong")
+	}
+	if yencParts(ARTICLE_SIZE) != 1 {
+		t.Errorf("yenc parts(ART_SIZE) wrong")
+	}
+	if yencParts(1024*1024) != 2 {
+		t.Errorf("yenc parts(1024) wrong")
+	}
+}
+
 func TestHeader(t *testing.T) {
 	std := "=ybegin part=1 total=10 line=128 size=1024 name=randomFile123.zip\r\n"
 	if yencHeader(1, 10, 1024, "randomFile123.zip") != std {
