@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/madcowfred/yencode"
 	"sla/lib/nntp"
 	"sla/lib/nzb"
 	"sla/lib/stream"
+	"sla/upload/yenc"
 	"fmt"
 	"archive/zip"
 	"os"
@@ -16,7 +16,6 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"flag"
-	"hash/crc32"
 )
 
 type Config struct {
@@ -30,7 +29,7 @@ type Config struct {
 type ArtPerf struct {
 	MsgId string
 	Time int64 // duration in nanoseconds
-	Size int
+	Size int64
 	Speed float64 // kb/sec
 	BitSpeed float64 // kbit/sec
 }
@@ -128,8 +127,8 @@ func main() {
 		fmt.Println("Building ZIP..")
 	}
 
-	var fileSize int
-	var parts map[int]YencPart
+	var enc yenc.Encoder
+	var partCount = 0
 	{
 		buf := new(bytes.Buffer)
 		w := zip.NewWriter(buf)
@@ -151,20 +150,20 @@ func main() {
 			panic(e)
 		}
 
-		fileSize = buf.Len()
-		parts, e = Build(buf)
-		if e != nil {
+		enc = yenc.NewEncoder(fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02")))
+		if e := enc.Build(buf); e != nil {
 			panic(e)
 		}
+		partCount = enc.Parts()
 	}
-	if len(parts) < 50 {
-		fmt.Printf("Need at least 50 parts, I got: %d (increase rand file?)\n", len(parts))
+	if partCount < 50 {
+		fmt.Printf("Need at least 50 parts, I got: %d (increase rand file?)\n", partCount)
 		os.Exit(1)
 	}
 
 	subject := "Completion test " + time.Now().Format("2006-01-02")
 	if verbose {
-		fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, len(parts)))
+		fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, partCount))
 	}
 
 	if verbose {
@@ -189,7 +188,8 @@ func main() {
 	msgids := make(map[string]int64)
 	artPerf := []ArtPerf{}
 	lastPerf := time.Now()
-	for i, part := range parts {
+
+	for enc.HasNext() {
 	 	if e := conn.Post(); e != nil {
 			panic(e)
 		}
@@ -201,30 +201,25 @@ func main() {
 		}
 		w.ResetWritten()
 
-		n := len(part.Bytes)
-		begin := ARTICLE_SIZE * i
-		fileName := fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02"))
-		w.WriteString(yencHeader(i, len(parts), fileSize, fileName))
-		w.WriteString(yencPart(begin+1, begin+n))
-
-		yencode.Encode(
-			part.Bytes,
-			w,
-		)
-		h := crc32.NewIEEE()
-		h.Write(part.Bytes)
-		w.WriteString(yencEnd(n, i, h.Sum32()))
-		msgids[msgid] = w.Written()
+		if e := enc.Next(w); e != nil {
+			panic(e)
+		}
+		n := w.Written()
+		msgids[msgid] = n
 
 		if e := conn.PostClose(); e != nil {
 			panic(e)
 		}
 
+		// Stats
 		now := time.Now()
 		d := now.Sub(lastPerf)
 
 		if verbose {
-			fmt.Println(fmt.Sprintf("Posted %s (part %d-%d) in %s", msgid, part.Begin, part.End, d.String()))
+			fmt.Println(fmt.Sprintf(
+				"Posted %s in %s",
+				msgid, d.String(),
+			))
 		}
 		kbSec := float64(n/1024) / d.Seconds()
 		artPerf = append(artPerf, ArtPerf{
