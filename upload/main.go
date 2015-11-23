@@ -239,7 +239,7 @@ func main() {
 		lastPerf = now
 	}
 
-	xml := nzb.Build(subject, msgids)
+	xml := nzb.Build(subject, msgids, time.Now().Format(time.RFC822))
 	if e := ioutil.WriteFile(
 		c.NzbDir + time.Now().Format("2006-01-02") + ".nzb",
 		[]byte(xml), 400,
