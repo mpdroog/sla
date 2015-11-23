@@ -2,6 +2,6 @@
 	"Address": "news.usenet.farm:119",
 	"User": "user",
 	"Pass": "pass",
-	"NzbDir": "/usr/local/sla/retention/"
+	"NzbDir": "/usr/local/sla/retention/",
 	"MsgDomain": "@usenet.farm"
 }
