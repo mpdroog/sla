@@ -228,11 +228,11 @@ func main() {
 		if verbose {
 			fmt.Println(fmt.Sprintf("Posted %s in %s", msgid, d.String()))
 		}
-		kbSec := float64(int64(fileSize)/1024) / (d.Seconds())
+		kbSec := float64(n/1024) / d.Seconds()
 		artPerf = append(artPerf, ArtPerf{
 			MsgId: msgid,
 			Time: d.Nanoseconds(),
-			Size: fileSize,
+			Size: n,
 			Speed: kbSec,     // kb/sec
 			BitSpeed: kbSec*8,// kbit/sec
 		})
