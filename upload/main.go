@@ -234,7 +234,7 @@ func main() {
 			Time: d.Nanoseconds(),
 			Size: fileSize,
 			Speed: kbSec,     // kb/sec
-			BitSpeed: kbSec/8,// kbit/sec
+			BitSpeed: kbSec*8,// kbit/sec
 		})
 		lastPerf = now
 	}
