@@ -206,8 +206,8 @@ func main() {
 
 		begin := (articleSize * i)
 		fileName := fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02"))
-		w.WriteString(fmt.Sprintf("=ybegin part=%d total=%d line=128 size=%d name=%s\r\n", i, parts, fileSize, fileName))
-		w.WriteString(fmt.Sprintf("=ypart begin=%d end=%d\r\n", begin+1, int64(begin+n) ))
+		w.WriteString(yencHeader(i, parts, fileSize, fileName))
+		w.WriteString(yencPart(begin+1, begin+n))
 
 		yencode.Encode(
 			part,
@@ -215,7 +215,7 @@ func main() {
 		)
 		h := crc32.NewIEEE()
 		h.Write(part)
-		w.WriteString(fmt.Sprintf("=yend size=%d part=%d pcrc32=%08X\r\n", n, i, h.Sum32()))
+		w.WriteString(yencEnd(n, i, h.Sum32()))
 		msgids[msgid] = w.Written()
 
 		if e := conn.PostClose(); e != nil {
