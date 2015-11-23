@@ -20,7 +20,7 @@ import (
 )
 
 type Config struct {
-	Listen string // server:port
+	Address string // server:port
 	User string
 	Pass string
 	NzbDir string
@@ -66,15 +66,27 @@ func min(a int, b int64) int {
 	return int(b)
 }
 
+func loadConfig(file string) (Config, error) {
+	var c Config
+	r, e := os.Open(file)
+	if e != nil {
+		return c, e
+	}
+	e = json.NewDecoder(r).Decode(&c)
+	return c, e
+}
+
 func main() {
 	var verbose bool
+	var configPath string
+
 	flag.BoolVar(&verbose, "v", false, "Verbosity")
+	flag.StringVar(&configPath, "c", "./config.json", "/Path/to/config.json")
 	flag.Parse()
 
-	c := Config{
-		"news.usenet.farm:119",
-		"jethro", "jethro",
-		"/usr/local/sla/retention/",
+	c, e := loadConfig(configPath)
+	if e != nil {
+		panic(e)
 	}
 	if !strings.HasSuffix(c.NzbDir, "/") {
 		c.NzbDir += "/"
@@ -131,7 +143,7 @@ func main() {
 	if verbose {
 		fmt.Println("Connecting to nntp..")
 	}
-	conn := nntp.New(c.Listen, "1")
+	conn := nntp.New(c.Address, "1")
 	perfBegin := time.Now()
 	var perfInit, perfAuth time.Time
 	{
