@@ -123,7 +123,6 @@ func New(listen string, name string) *Client {
 	return &Client{
 		Name:   name,
 		listen: listen,
-		Verbose: true,
 		// TODO: cleanup..
 		L: log.New(os.Stdout, "", log.Ldate|log.Ltime),
 	}

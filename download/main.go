@@ -74,6 +74,7 @@ func main() {
 		fmt.Println("Connecting to nntp..")
 	}
 	conn := nntp.New(c.Address, "1")
+	conn.Verbose = verbose	
 	perfBegin := time.Now()
 	var perfInit, perfAuth time.Time
 	{
