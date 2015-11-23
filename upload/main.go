@@ -127,8 +127,11 @@ func main() {
 	if verbose {
 		fmt.Println("Building ZIP..")
 	}
-	buf := new(bytes.Buffer)
+
+	var fileSize int
+	var parts map[int]YencPart
 	{
+		buf := new(bytes.Buffer)
 		w := zip.NewWriter(buf)
 
 		if e := zipAdd(w, "README.md", "./dummy/README.txt"); e != nil {
@@ -147,6 +150,21 @@ func main() {
 		if e := w.Close(); e != nil {
 			panic(e)
 		}
+
+		fileSize = buf.Len()
+		parts, e = Build(buf)
+		if e != nil {
+			panic(e)
+		}
+	}
+	if len(parts) < 50 {
+		fmt.Printf("Need at least 50 parts, I got: %d (increase rand file?)\n", len(parts))
+		os.Exit(1)
+	}
+
+	subject := "Completion test " + time.Now().Format("2006-01-02")
+	if verbose {
+		fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, len(parts)))
 	}
 
 	if verbose {
@@ -168,27 +186,11 @@ func main() {
 		perfAuth = time.Now()
 	}
 
-	fileSize := buf.Len()
-	parts := yencParts(fileSize)
-	if parts < 50 {
-		fmt.Printf("Need at least 50 parts, I got: %d (increase rand file?)\n", parts)
-		os.Exit(1)
-	}
-
 	msgids := make(map[string]int64)
-	subject := "Completion test " + time.Now().Format("2006-01-02")
-	if verbose {
-		fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, parts))
-	}
 	artPerf := []ArtPerf{}
 	lastPerf := time.Now()
-	part := make([]byte, ARTICLE_SIZE)
-	for i := 0; i < parts; i++ {
+	for i, part := range parts {
 	 	if e := conn.Post(); e != nil {
-			panic(e)
-		}
-		n, e := buf.Read(part)
-		if e != nil {
 			panic(e)
 		}
 		msgid := RandStringRunes(16) + c.MsgDomain
@@ -199,17 +201,18 @@ func main() {
 		}
 		w.ResetWritten()
 
-		begin := (ARTICLE_SIZE * i)
+		n := len(part.Bytes)
+		begin := ARTICLE_SIZE * i
 		fileName := fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02"))
-		w.WriteString(yencHeader(i, parts, fileSize, fileName))
+		w.WriteString(yencHeader(i, len(parts), fileSize, fileName))
 		w.WriteString(yencPart(begin+1, begin+n))
 
 		yencode.Encode(
-			part,
+			part.Bytes,
 			w,
 		)
 		h := crc32.NewIEEE()
-		h.Write(part)
+		h.Write(part.Bytes)
 		w.WriteString(yencEnd(n, i, h.Sum32()))
 		msgids[msgid] = w.Written()
 
@@ -221,7 +224,7 @@ func main() {
 		d := now.Sub(lastPerf)
 
 		if verbose {
-			fmt.Println(fmt.Sprintf("Posted %s in %s", msgid, d.String()))
+			fmt.Println(fmt.Sprintf("Posted %s (part %d-%d) in %s", msgid, part.Begin, part.End, d.String()))
 		}
 		kbSec := float64(n/1024) / d.Seconds()
 		artPerf = append(artPerf, ArtPerf{

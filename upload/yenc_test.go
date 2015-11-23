@@ -2,6 +2,8 @@ package main
 
 import (
 	"testing"
+	"bytes"
+	"archive/zip"
 )
 
 func TestYencParts(t *testing.T) {
@@ -37,5 +39,65 @@ func TestEnd(t *testing.T) {
 	out := yencEnd(1024, 1, 123)
 	if out != std {
 		t.Errorf("yend wrong expect: %s received: %s", std, out)
+	}
+}
+
+func TestBuild(t *testing.T) {
+	// Load 700kb+ of testdata
+	buf := new(bytes.Buffer)
+	{
+		w := zip.NewWriter(buf)
+
+		if e := zipAdd(w, "UF-Logo.jpg", "./test/UF-Logo.jpg"); e != nil {
+			panic(e)
+		}
+		if e := zipAdd(w, "Why UF.pdf", "./test/Why UF.pdf"); e != nil {
+			panic(e)
+		}
+		if e := zipAdd(w, "Why UF.tiff", "./test/Why UF.tiff"); e != nil {
+			panic(e)
+		}
+
+		if e := w.Close(); e != nil {
+			panic(e)
+		}
+	}
+
+	size := len(buf.Bytes())
+	if size != 792373 {
+		t.Errorf("Buffersize not as hardwired?")
+	}
+	parts, e := Build(buf)
+	if e != nil {
+		panic(e)
+	}
+
+	if len(parts) != 2 {
+		t.Errorf("Parts not as hardwired?")
+	}
+
+	for idx, part := range parts {
+		var cmp YencPart
+		if idx == 0 {
+			cmp = YencPart{
+				Begin: 1,
+				End: 768000,
+			}
+		} else {
+			cmp = YencPart{
+				Begin: 768001,
+				End: 792373,
+			}
+		}
+
+		if len(part.Bytes) != cmp.End - cmp.Begin +1 {
+			t.Errorf("part.Len mismatch ")
+		}
+		if part.Begin != cmp.Begin {
+			t.Errorf("part.Begin mismatch")
+		}
+		if part.End != cmp.End {
+			t.Errorf("part.End mismatch")
+		}
 	}
 }
