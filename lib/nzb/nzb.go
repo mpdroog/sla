@@ -2,9 +2,9 @@ package nzb
 
 import (
 	"fmt"
-	"time"
 	"encoding/xml"
 	"os"
+	"sort"
 )
 
 type Segment struct {
@@ -21,17 +21,23 @@ type Nzb struct {
 }
 
 func segments(msgids map[string]int64) string {
+	// Get keys and sort
+	var keys []string
+	for msgid, _ := range msgids {
+		keys = append(keys, msgid)
+	}
+	sort.Strings(keys)
+
 	// <segment bytes="394827" number="1">Part1of87.CC19C709AFA241E5A8820BA44725CCE0@1444933554.local</segment>
 	segments := ""
-	id := 0
-	for msgid, size := range msgids {
-		id++
-		segments += fmt.Sprintf(`<segment bytes="%d" number="%d">%s</segment>`, size, id, msgid)
+	for id, msgid := range keys {
+		size := msgids[msgid]
+		segments += fmt.Sprintf(`<segment bytes="%d" number="%d">%s</segment>`, size, 1+id, msgid)
 	}
 	return segments
 }
 
-func Build(subject string, msgids map[string]int64) string {
+func Build(subject string, msgids map[string]int64, date string) string {
 	segments := segments(msgids)
 
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8" ?>
@@ -44,7 +50,7 @@ func Build(subject string, msgids map[string]int64) string {
 </groups>
 <segments>%s</segments>
 </file>
-</nzb>`, time.Now().String(), subject, segments)
+</nzb>`, date, subject, segments)
 }
 
 func Open(path string) (Nzb, error) {
