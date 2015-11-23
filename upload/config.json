@@ -3,4 +3,5 @@
 	"User": "user",
 	"Pass": "pass",
 	"NzbDir": "/usr/local/sla/retention/"
+	"MsgDomain": "@usenet.farm"
 }

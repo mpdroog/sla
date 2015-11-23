@@ -24,12 +24,21 @@ type Config struct {
 	User string
 	Pass string
 	NzbDir string
+	MsgDomain string
+}
+
+type ArtPerf struct {
+	MsgId string
+	Time int64 // duration in nanoseconds
+	Size int
+	Speed float64 // kb/sec
+	BitSpeed float64 // kbit/sec
 }
 
 type Perf struct {
 	Conn string
 	Auth string
-	Arts []string
+	Arts []ArtPerf
 }
 
 func zipAdd(w *zip.Writer, name string, path string) error {
@@ -176,7 +185,7 @@ func main() {
 	if verbose {
 		fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, parts))
 	}
-	artPerf := []string{}
+	artPerf := []ArtPerf{}
 	lastPerf := time.Now()
 	part := make([]byte, articleSize)
 	for i := 0; i < parts; i++ {
@@ -187,7 +196,7 @@ func main() {
 		if e != nil {
 			panic(e)
 		}
-		msgid := RandStringRunes(16) + "@usenet.farm"
+		msgid := RandStringRunes(16) + c.MsgDomain
 
 		w := stream.NewCountWriter(conn.GetWriter())
 		if _, e := w.WriteString(headers(subject, msgid)); e != nil {
@@ -214,12 +223,19 @@ func main() {
 		}
 
 		now := time.Now()
-		d := now.Sub(lastPerf).String()
+		d := now.Sub(lastPerf)
 
 		if verbose {
-			fmt.Println(fmt.Sprintf("Posted %s in %s", msgid, d))
+			fmt.Println(fmt.Sprintf("Posted %s in %s", msgid, d.String()))
 		}
-		artPerf = append(artPerf, d)
+		kbSec := float64(int64(fileSize)/1024) / (d.Seconds())
+		artPerf = append(artPerf, ArtPerf{
+			MsgId: msgid,
+			Time: d.Nanoseconds(),
+			Size: fileSize,
+			Speed: kbSec,     // kb/sec
+			BitSpeed: kbSec/8,// kbit/sec
+		})
 		lastPerf = now
 	}
 
