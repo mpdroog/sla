@@ -165,6 +165,10 @@ func main() {
 	if mod != 0 {
 		parts++
 	}
+	if parts < 50 {
+		fmt.Printf("Need at least 50 parts, I got: %d (increase rand file?)\n", parts)
+		os.Exit(1)
+	}
 
 	msgids := make(map[string]int64)
 	subject := "Completion test " + time.Now().Format("2006-01-02")
