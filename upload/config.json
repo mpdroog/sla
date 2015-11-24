@@ -1,7 +1,8 @@
 {
-	"Address": "news.usenet.farm:119",
+	"Address": "127.0.0.1:9091",
 	"User": "user",
-	"Pass": "pass",
-	"NzbDir": "/usr/local/sla/retention/",
-	"MsgDomain": "@usenet.farm"
+	"Pass": "test",
+	"NzbDir": "./",
+	"MsgDomain": "@usenet.farm",
+	"UploadDir": "./dummy"
 }

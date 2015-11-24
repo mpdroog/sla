@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"flag"
+	"path/filepath"
 )
 
 type Config struct {
@@ -24,6 +25,7 @@ type Config struct {
 	Pass string
 	NzbDir string
 	MsgDomain string
+	UploadDir string
 }
 
 type ArtPerf struct {
@@ -124,7 +126,7 @@ func main() {
 	}
 
 	if verbose {
-		fmt.Println("Building ZIP..")
+		fmt.Println("Building ZIP from dir=" + c.UploadDir)
 	}
 
 	var enc yenc.Encoder
@@ -133,10 +135,27 @@ func main() {
 		buf := new(bytes.Buffer)
 		w := zip.NewWriter(buf)
 
-		if e := zipAdd(w, "README.md", "./dummy/README.txt"); e != nil {
-			panic(e)
-		}
-		if e := zipAdd(w, "100mb.bin", "./dummy/100mb.bin"); e != nil {
+		e := filepath.Walk(c.UploadDir, func(path string, info os.FileInfo, err error) error {
+			if path == c.UploadDir {
+				// Ignore base
+				return nil
+			}
+			if strings.HasSuffix(info.Name(), ".sh") {
+				// Ignore scripts
+				if verbose {
+					fmt.Println("Skip " + path)
+				}
+				return nil
+			}
+			if verbose {
+				fmt.Println("Add " + path + " to ZIP.")
+			}
+			if e := zipAdd(w, info.Name(), path); e != nil {
+				return e
+			}
+			return nil
+		})
+		if e != nil {
 			panic(e)
 		}
 
