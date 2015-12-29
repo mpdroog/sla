@@ -104,7 +104,7 @@ func main() {
 		c.NzbDir += "/"
 	}
 
-	// Permission check
+	// Permission check nzbdir
 	{
 		stat, e := os.Stat(c.NzbDir)
 		if e != nil {
@@ -124,6 +124,18 @@ func main() {
 		}
 		if e := os.Remove(c.NzbDir + "check.txt"); e != nil {
 			panic(e)
+		}
+	}
+	// Permission check uploaddir
+	{
+		stat, e := os.Stat(c.UploadDir)
+		if e != nil {
+			panic(e)
+		}
+		if !stat.IsDir() {
+			fmt.Println("Not a dir: " + c.UploadDir)
+			os.Exit(1)
+			return
 		}
 	}
 
