@@ -48,7 +48,9 @@ func zipAdd(w *zip.Writer, name string, path string) error {
 		return e
 	}
 
-	f, e := w.Create(name)
+	head := &zip.FileHeader{Name: name}
+	head.SetModTime(time.Now())
+	f, e := w.CreateHeader(head)
 	if e != nil {
 		return e
 	}
