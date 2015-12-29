@@ -62,6 +62,9 @@ func (e *Encoder) HasNext() bool {
 // Write next part to the given writer and return written
 // bytes/error.
 func (e *Encoder) Next(w io.Writer) error {
+	if e.pos == 0 && len(e.parts) == 0 {
+		panic("No parts in memory written yet.")
+	}
 	if e.pos >= len(e.parts) {
 		// DevErr: Off by one?
 		panic(io.EOF)
