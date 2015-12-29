@@ -111,6 +111,9 @@ func NewEncoder(fileName string) Encoder {
 
 // --------- old
 func yencHeader(part, parts, fileSize int, fileName string) string {
+	if part <= 0 {
+		panic("Part indices must be > 0")
+	}
 	return fmt.Sprintf("=ybegin part=%d total=%d line=128 size=%d name=%s\r\n", part, parts, fileSize, fileName)
 }
 
@@ -119,6 +122,9 @@ func yencPart(posBegin, posEnd int) string {
 }
 
 func yencEnd(size, part int, hash uint32) string {
+	if part <= 0 {
+		panic("Part indices must be > 0")
+	}
 	return fmt.Sprintf("=yend size=%d part=%d pcrc32=%08X\r\n", size, part, hash)
 }
 

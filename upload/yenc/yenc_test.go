@@ -3,7 +3,8 @@ package yenc
 import (
 	"testing"
 	"bytes"
-	"archive/zip"
+	//"archive/zip"
+	"io/ioutil"
 )
 
 func TestYencParts(t *testing.T) {
@@ -42,9 +43,66 @@ func TestEnd(t *testing.T) {
 	}
 }
 
+func TestYencodeTest1(t *testing.T) {
+    // open and read the input file
+    inbuf, err := ioutil.ReadFile("../test/test1.in")
+    if err != nil {
+        t.Fatalf("couldn't open test1.in: %s", err)
+    }
+
+    // open and read the yencode output file
+    testbuf, err := ioutil.ReadFile("../test/test1.ync")
+    if err != nil {
+        t.Fatalf("couldn't open test1.ync: %s", err)
+    }
+
+    enc := NewEncoder("test1.in")
+    if e := enc.Build(bytes.NewBuffer(inbuf)); e != nil {
+    	t.Fatalf("couldn't encode test1.in")
+    }
+
+    out := new(bytes.Buffer)
+    if e := enc.Next(out); e != nil {
+    	t.Fatalf("couldn't encode")
+    }
+
+    // compare
+    if bytes.Compare(testbuf, out.Bytes()) != 0 {
+        t.Fatalf("yenc invalid, expect=%s received=%s", testbuf, out.Bytes())
+    }
+}
+func TestYencodeTest2(t *testing.T) {
+    // open and read the input file
+    inbuf, err := ioutil.ReadFile("../test/test2.in")
+    if err != nil {
+        t.Fatalf("couldn't open test1.in: %s", err)
+    }
+
+    // open and read the yencode output file
+    testbuf, err := ioutil.ReadFile("../test/test2.ync")
+    if err != nil {
+        t.Fatalf("couldn't open test1.ync: %s", err)
+    }
+
+    enc := NewEncoder("test2.in")
+    if e := enc.Build(bytes.NewBuffer(inbuf)); e != nil {
+    	t.Fatalf("couldn't encode test2.in")
+    }
+
+    out := new(bytes.Buffer)
+    if e := enc.Next(out); e != nil {
+    	t.Fatalf("couldn't encode")
+    }
+
+    // compare
+    if bytes.Compare(testbuf, out.Bytes()) != 0 {
+        t.Fatalf("yenc invalid, expect=%s received=%s", testbuf, out.Bytes())
+    }
+}
+
 func TestBuild(t *testing.T) {
 	// Load 700kb+ of testdata
-	buf := new(bytes.Buffer)
+	/*buf := new(bytes.Buffer)
 	{
 		w := zip.NewWriter(buf)
 
@@ -99,5 +157,5 @@ func TestBuild(t *testing.T) {
 		if part.End != cmp.End {
 			t.Errorf("part.End mismatch")
 		}
-	}
+	}*/
 }
