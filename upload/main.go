@@ -143,7 +143,11 @@ func main() {
 		fmt.Println("Building ZIP from dir=" + c.UploadDir)
 	}
 
-	var enc yenc.Encoder
+	enc := yenc.NewWriter(
+		new(bytes.Buffer),
+		fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02")),
+		yenc.PART_SIZE,
+	)
 	var partCount = 0
 	{
 		buf := new(bytes.Buffer)
@@ -183,9 +187,8 @@ func main() {
 			panic(e)
 		}
 
-		enc = yenc.NewEncoder(fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02")))
-		if e := enc.Build(buf); e != nil {
-			panic(e)
+		if _, err := enc.Write(buf.Bytes()); err != nil {
+			panic(err)
 		}
 		partCount = enc.Parts()
 	}
@@ -234,7 +237,7 @@ func main() {
 		}
 		w.ResetWritten()
 
-		if e := enc.Next(w); e != nil {
+		if _, e := enc.EncodePart(w); e != nil {
 			panic(e)
 		}
 		n := w.Written()
@@ -266,6 +269,9 @@ func main() {
 			BitSpeed: kbSec*8,// kbit/sec
 		})
 		lastPerf = now
+	}
+	if err := enc.Close(); err != nil {
+		panic(err)
 	}
 
 	xml := nzb.Build(subject, msgids, time.Now().Format(time.RFC822))
