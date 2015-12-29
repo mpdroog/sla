@@ -1,4 +1,4 @@
-// Yenc Encoding abstraction.
+// Yenc abstracts away the header/footer stuff
 package yenc
 
 import (
@@ -8,6 +8,7 @@ import (
 	"hash/crc32"
 	"io"
 )
+// TODO: peek at ZipWriter and clone interface?
 
 const ARTICLE_SIZE = 768000 // 750kb
 
