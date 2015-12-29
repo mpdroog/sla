@@ -48,7 +48,7 @@ func zipAdd(w *zip.Writer, name string, path string) error {
 		return e
 	}
 
-	f, e := w.Create("README.txt")
+	f, e := w.Create(name)
 	if e != nil {
 		return e
 	}
