@@ -7,6 +7,11 @@ import (
 	"sort"
 )
 
+type Msg struct {
+	Msgid string
+	Size int64
+}
+
 type Segment struct {
 	Bytes string `xml:"bytes,attr"`
 	Number string `xml:"number,attr"`
@@ -20,24 +25,24 @@ type Nzb struct {
 	} `xml:"file"`
 }
 
-func segments(msgids map[string]int64) string {
+func segments(msgids []Msg) string {
 	// Get keys and sort
-	var keys []string
-	for msgid, _ := range msgids {
-		keys = append(keys, msgid)
+	var keys []int
+	for idx, _ := range msgids {
+		keys = append(keys, idx)
 	}
-	sort.Strings(keys)
+	sort.Ints(keys)
 
 	// <segment bytes="394827" number="1">Part1of87.CC19C709AFA241E5A8820BA44725CCE0@1444933554.local</segment>
 	segments := ""
-	for id, msgid := range keys {
-		size := msgids[msgid]
-		segments += fmt.Sprintf(`<segment bytes="%d" number="%d">%s</segment>`, size, 1+id, msgid)
+	for _, idx := range keys {
+		msg := msgids[idx]
+		segments += fmt.Sprintf(`<segment bytes="%d" number="%d">%s</segment>`, msg.Size, 1+idx, msg.Msgid)
 	}
 	return segments
 }
 
-func Build(subject string, msgids map[string]int64, date string) string {
+func Build(subject string, msgids []Msg, date string) string {
 	segments := segments(msgids)
 
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8" ?>

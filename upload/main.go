@@ -204,7 +204,7 @@ func main() {
 		perfAuth = time.Now()
 	}
 
-	msgids := make(map[string]int64)
+	var msgids []nzb.Msg
 	artPerf := []ArtPerf{}
 	lastPerf := time.Now()
 
@@ -224,7 +224,10 @@ func main() {
 			panic(e)
 		}
 		n := w.Written()
-		msgids[msgid] = n
+		msgids = append(msgids, nzb.Msg{
+			Msgid: msgid,
+			Size: n,
+		})
 
 		if e := conn.PostClose(); e != nil {
 			panic(e)
