@@ -79,7 +79,7 @@ func (e *Encoder) Next(w io.Writer) error {
 	begin := ARTICLE_SIZE * i
 
 	// yEnc opening
-	_, err := w.Write([]byte(yencHeader(i, len(e.parts), e.fileSize, e.FileName)))
+	_, err := w.Write([]byte(yencHeader(i+1, len(e.parts), e.fileSize, e.FileName)))
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (e *Encoder) Next(w io.Writer) error {
 	h := crc32.NewIEEE()
 	h.Write(part.Bytes)
 	// yEnc footer
-	w.Write([]byte(yencEnd(n, i, h.Sum32())))
+	w.Write([]byte(yencEnd(n, i+1, h.Sum32())))
 
 	return nil
 }
