@@ -3,10 +3,15 @@ package nzb
 import (
 	"io"
 	"fmt"
-	"time"
 	"encoding/xml"
 	"os"
+	"sort"
 )
+
+type Msg struct {
+	Msgid string
+	Size int64
+}
 
 type Segment struct {
 	Bytes string `xml:"bytes,attr"`
@@ -21,18 +26,24 @@ type Nzb struct {
 	} `xml:"file"`
 }
 
-func segments(msgids map[string]int64) string {
+func segments(msgids []Msg) string {
+	// Get keys and sort
+	var keys []int
+	for idx, _ := range msgids {
+		keys = append(keys, idx)
+	}
+	sort.Ints(keys)
+
 	// <segment bytes="394827" number="1">Part1of87.CC19C709AFA241E5A8820BA44725CCE0@1444933554.local</segment>
 	segments := ""
-	id := 0
-	for msgid, size := range msgids {
-		id++
-		segments += fmt.Sprintf(`<segment bytes="%d" number="%d">%s</segment>`, size, id, msgid)
+	for _, idx := range keys {
+		msg := msgids[idx]
+		segments += fmt.Sprintf(`<segment bytes="%d" number="%d">%s</segment>`, msg.Size, 1+idx, msg.Msgid)
 	}
 	return segments
 }
 
-func Build(subject string, msgids map[string]int64) string {
+func Build(subject string, msgids []Msg, date string) string {
 	segments := segments(msgids)
 
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8" ?>
@@ -45,7 +56,7 @@ func Build(subject string, msgids map[string]int64) string {
 </groups>
 <segments>%s</segments>
 </file>
-</nzb>`, time.Now().String(), subject, segments)
+</nzb>`, date, subject, segments)
 }
 
 func Read(f io.Reader) (Nzb, error) {

@@ -1,0 +1,8 @@
+{
+	"Address": "127.0.0.1:9091",
+	"User": "user",
+	"Pass": "test",
+	"NzbDir": "./",
+	"MsgDomain": "@usenet.farm",
+	"UploadDir": "./dummy"
+}

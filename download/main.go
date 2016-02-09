@@ -17,7 +17,7 @@ import (
 )
 
 type Config struct {
-	Listen string // server:port
+	Address string // server:port
 	User string
 	Pass string
 	NzbDir string
@@ -29,22 +29,43 @@ type Perf struct {
 	Arts []string
 }
 
+func loadConfig(file string) (Config, error) {
+	var c Config
+	r, e := os.Open(file)
+	if e != nil {
+		return c, e
+	}
+	e = json.NewDecoder(r).Decode(&c)
+	return c, e
+}
+
 func main() {
 	var verbose, skipyenc bool
+	var configPath, date string
 	flag.BoolVar(&verbose, "v", false, "Verbosity")
 	flag.BoolVar(&skipyenc, "y", false, "Skip yEnc decode")
+	flag.StringVar(&configPath, "c", "./config.json", "/Path/to/config.json")
+	flag.StringVar(&date, "d", "", "YYYY-mm-dd to download from nzbdir")
 	flag.Parse()
 
-	c := Config{
-		"news.usenet.farm:119",
-		"jethro", "jethro",
-		"/usr/local/sla/retention/",
+	c, e := loadConfig(configPath)
+	if e != nil {
+		panic(e)
 	}
 	if !strings.HasSuffix(c.NzbDir, "/") {
 		c.NzbDir += "/"
 	}
+	if date == "" {
+		// default to today
+		date = time.Now().Format("2006-01-02")
+	}
 
-	arts, e := nzb.Open(c.NzbDir + time.Now().Format("2006-01-02") + ".nzb")
+	// Force valid date pattern
+	if _, e := time.Parse("2006-01-02", date); e != nil {
+		panic(e)
+	}
+
+	arts, e := nzb.Open(c.NzbDir + date + ".nzb")
 	if e != nil {
 		panic(e)
 	}
@@ -52,7 +73,8 @@ func main() {
 	if verbose {
 		fmt.Println("Connecting to nntp..")
 	}
-	conn := nntp.New(c.Listen, "1")
+	conn := nntp.New(c.Address, "1")
+	conn.Verbose = verbose	
 	perfBegin := time.Now()
 	var perfInit, perfAuth time.Time
 	{

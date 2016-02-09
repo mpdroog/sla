@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/madcowfred/yencode"
 	"sla/lib/nntp"
 	"sla/lib/nzb"
 	"sla/lib/stream"
+	"sla/upload/yenc"
 	"fmt"
 	"archive/zip"
 	"os"
@@ -16,20 +16,30 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"flag"
-	"hash/crc32"
+	"path/filepath"
 )
 
 type Config struct {
-	Listen string // server:port
+	Address string // server:port
 	User string
 	Pass string
 	NzbDir string
+	MsgDomain string
+	UploadDir string
+}
+
+type ArtPerf struct {
+	MsgId string
+	Time int64 // duration in nanoseconds
+	Size int64
+	Speed float64 // kb/sec
+	BitSpeed float64 // kbit/sec
 }
 
 type Perf struct {
 	Conn string
 	Auth string
-	Arts []string
+	Arts []ArtPerf
 }
 
 func zipAdd(w *zip.Writer, name string, path string) error {
@@ -38,7 +48,9 @@ func zipAdd(w *zip.Writer, name string, path string) error {
 		return e
 	}
 
-	f, e := w.Create("README.txt")
+	head := &zip.FileHeader{Name: name}
+	head.SetModTime(time.Now())
+	f, e := w.CreateHeader(head)
 	if e != nil {
 		return e
 	}
@@ -66,21 +78,33 @@ func min(a int, b int64) int {
 	return int(b)
 }
 
+func loadConfig(file string) (Config, error) {
+	var c Config
+	r, e := os.Open(file)
+	if e != nil {
+		return c, e
+	}
+	e = json.NewDecoder(r).Decode(&c)
+	return c, e
+}
+
 func main() {
 	var verbose bool
+	var configPath string
+
 	flag.BoolVar(&verbose, "v", false, "Verbosity")
+	flag.StringVar(&configPath, "c", "./config.json", "/Path/to/config.json")
 	flag.Parse()
 
-	c := Config{
-		"news.usenet.farm:119",
-		"jethro", "jethro",
-		"/usr/local/sla/retention/",
+	c, e := loadConfig(configPath)
+	if e != nil {
+		panic(e)
 	}
 	if !strings.HasSuffix(c.NzbDir, "/") {
 		c.NzbDir += "/"
 	}
 
-	// Permission check
+	// Permission check nzbdir
 	{
 		stat, e := os.Stat(c.NzbDir)
 		if e != nil {
@@ -102,18 +126,54 @@ func main() {
 			panic(e)
 		}
 	}
-
-	if verbose {
-		fmt.Println("Building ZIP..")
-	}
-	buf := new(bytes.Buffer)
+	// Permission check uploaddir
 	{
-		w := zip.NewWriter(buf)
-
-		if e := zipAdd(w, "README.md", "./dummy/README.txt"); e != nil {
+		stat, e := os.Stat(c.UploadDir)
+		if e != nil {
 			panic(e)
 		}
-		if e := zipAdd(w, "100mb.bin", "./dummy/100mb.bin"); e != nil {
+		if !stat.IsDir() {
+			fmt.Println("Not a dir: " + c.UploadDir)
+			os.Exit(1)
+			return
+		}
+	}
+
+	if verbose {
+		fmt.Println("Building ZIP from dir=" + c.UploadDir)
+	}
+
+	enc := yenc.NewWriter(
+		new(bytes.Buffer),
+		fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02")),
+		yenc.PART_SIZE,
+	)
+	var partCount = 0
+	{
+		buf := new(bytes.Buffer)
+		w := zip.NewWriter(buf)
+
+		e := filepath.Walk(c.UploadDir, func(path string, info os.FileInfo, err error) error {
+			if path == c.UploadDir {
+				// Ignore base
+				return nil
+			}
+			if strings.HasSuffix(info.Name(), ".sh") {
+				// Ignore scripts
+				if verbose {
+					fmt.Println("Skip " + path)
+				}
+				return nil
+			}
+			if verbose {
+				fmt.Println("Add " + path + " to ZIP.")
+			}
+			if e := zipAdd(w, info.Name(), path); e != nil {
+				return e
+			}
+			return nil
+		})
+		if e != nil {
 			panic(e)
 		}
 
@@ -126,12 +186,27 @@ func main() {
 		if e := w.Close(); e != nil {
 			panic(e)
 		}
+
+		if _, err := enc.Write(buf.Bytes()); err != nil {
+			panic(err)
+		}
+		partCount = enc.Parts()
+	}
+	if partCount < 50 {
+		fmt.Printf("Need at least 50 parts, I got: %d (increase rand file?)\n", partCount)
+		os.Exit(1)
+	}
+
+	subject := "Completion test " + time.Now().Format("2006-01-02")
+	if verbose {
+		fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, partCount))
 	}
 
 	if verbose {
 		fmt.Println("Connecting to nntp..")
 	}
-	conn := nntp.New(c.Listen, "1")
+	conn := nntp.New(c.Address, "1")
+	conn.Verbose = verbose
 	perfBegin := time.Now()
 	var perfInit, perfAuth time.Time
 	{
@@ -146,31 +221,15 @@ func main() {
 		perfAuth = time.Now()
 	}
 
-	articleSize := 768000 // 750kb
-	fileSize := buf.Len()
-	parts := fileSize / articleSize
-	mod := fileSize % articleSize
-	if mod != 0 {
-		parts++
-	}
-
-	msgids := make(map[string]int64)
-	subject := "Completion test " + time.Now().Format("2006-01-02")
-	if verbose {
-		fmt.Println(fmt.Sprintf("Upload file=%s parts(%d)..", subject, parts))
-	}
-	artPerf := []string{}
+	var msgids []nzb.Msg
+	artPerf := []ArtPerf{}
 	lastPerf := time.Now()
-	part := make([]byte, articleSize)
-	for i := 0; i < parts; i++ {
+
+	for enc.HasNext() {
 	 	if e := conn.Post(); e != nil {
 			panic(e)
 		}
-		n, e := buf.Read(part)
-		if e != nil {
-			panic(e)
-		}
-		msgid := RandStringRunes(16) + "@usenet.farm"
+		msgid := RandStringRunes(16) + c.MsgDomain
 
 		w := stream.NewCountWriter(conn.GetWriter())
 		if _, e := w.WriteString(headers(subject, msgid)); e != nil {
@@ -178,35 +237,44 @@ func main() {
 		}
 		w.ResetWritten()
 
-		begin := (articleSize * i)
-		fileName := fmt.Sprintf("sla-%s.zip", time.Now().Format("2006-01-02"))
-		w.WriteString(fmt.Sprintf("=ybegin part=%d total=%d line=128 size=%d name=%s\r\n", i, parts, fileSize, fileName))
-		w.WriteString(fmt.Sprintf("=ypart begin=%d end=%d\r\n", begin+1, int64(begin+n) ))
-
-		yencode.Encode(
-			part,
-			w,
-		)
-		h := crc32.NewIEEE()
-		h.Write(part)
-		w.WriteString(fmt.Sprintf("=yend size=%d part=%d pcrc32=%08X\r\n", n, i, h.Sum32()))
-		msgids[msgid] = w.Written()
+		if _, e := enc.EncodePart(w); e != nil {
+			panic(e)
+		}
+		n := w.Written()
+		msgids = append(msgids, nzb.Msg{
+			Msgid: msgid,
+			Size: n,
+		})
 
 		if e := conn.PostClose(); e != nil {
 			panic(e)
 		}
 
+		// Stats
 		now := time.Now()
-		d := now.Sub(lastPerf).String()
+		d := now.Sub(lastPerf)
 
 		if verbose {
-			fmt.Println(fmt.Sprintf("Posted %s in %s", msgid, d))
+			fmt.Println(fmt.Sprintf(
+				"Posted %s in %s",
+				msgid, d.String(),
+			))
 		}
-		artPerf = append(artPerf, d)
+		kbSec := float64(n/1024) / d.Seconds()
+		artPerf = append(artPerf, ArtPerf{
+			MsgId: msgid,
+			Time: d.Nanoseconds(),
+			Size: n,
+			Speed: kbSec,     // kb/sec
+			BitSpeed: kbSec*8,// kbit/sec
+		})
 		lastPerf = now
 	}
+	if err := enc.Close(); err != nil {
+		panic(err)
+	}
 
-	xml := nzb.Build(subject, msgids)
+	xml := nzb.Build(subject, msgids, time.Now().Format(time.RFC822))
 	if e := ioutil.WriteFile(
 		c.NzbDir + time.Now().Format("2006-01-02") + ".nzb",
 		[]byte(xml), 400,

@@ -5,7 +5,6 @@ package nntp
 import (
 	"bytes"
 	"io"
-	"fmt"
 )
 
 // End Of Stream
@@ -53,7 +52,6 @@ func (d *DotReader) Read(b []byte) (n int, err error) {
 	}
 
 	if d.begin && d.shortEnd && bytes.Index(b[0:len(END_SHORT)], END_SHORT) == 0 {
-		fmt.Println("WARN: Short end")
 		d.done = true
 		e = io.EOF
 	}
