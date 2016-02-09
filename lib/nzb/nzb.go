@@ -1,6 +1,7 @@
 package nzb
 
 import (
+	"io"
 	"fmt"
 	"time"
 	"encoding/xml"
@@ -45,6 +46,15 @@ func Build(subject string, msgids map[string]int64) string {
 <segments>%s</segments>
 </file>
 </nzb>`, time.Now().String(), subject, segments)
+}
+
+func Read(f io.Reader) (Nzb, error) {
+	n := Nzb{}
+	dec := xml.NewDecoder(f)
+	if e := dec.Decode(&n); e != nil {
+		return n, e
+	}
+	return n, nil
 }
 
 func Open(path string) (Nzb, error) {
