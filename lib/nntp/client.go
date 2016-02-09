@@ -119,11 +119,11 @@ func (c *Client) GetReader() *DotReader {
 	return NewDotReader(c.r, false)
 }
 
-func New(listen string, name string) *Client {
+func New(listen string, name string, verbose bool) *Client {
 	return &Client{
 		Name:   name,
 		listen: listen,
-		Verbose: true,
+		Verbose: verbose,
 		// TODO: cleanup..
 		L: log.New(os.Stdout, "", log.Ldate|log.Ltime),
 	}
