@@ -73,7 +73,7 @@ func main() {
 	if verbose {
 		fmt.Println("Connecting to nntp..")
 	}
-	conn := nntp.New(c.Address, "1")
+	conn := nntp.New(c.Address, "1", verbose)
 	conn.Verbose = verbose	
 	perfBegin := time.Now()
 	var perfInit, perfAuth time.Time
