@@ -24,9 +24,9 @@ type Config struct {
 }
 
 type Perf struct {
-	Conn string
-	Auth string
-	Arts []string
+	Conn float64
+	Auth float64
+	Arts []float64
 }
 
 func loadConfig(file string) (Config, error) {
@@ -89,7 +89,7 @@ func main() {
 		perfAuth = time.Now()
 	}
 
-	perfArts := []string{}
+	perfArts := []float64{}
 	lastPerf := time.Now()
 	for _, segment := range arts.File.Segments.Segment {
 		conn.Article(segment.Msgid)
@@ -121,13 +121,13 @@ func main() {
 				now.Sub(lastPerf).String(),
 			))
 		}
-		perfArts = append(perfArts, now.Sub(lastPerf).String())
+		perfArts = append(perfArts, MilliSeconds(now.Sub(lastPerf)))
 		lastPerf = now
 	}
 
 	stat, e := json.Marshal(Perf{
-		Conn: perfInit.Sub(perfBegin).String(),
-		Auth: perfAuth.Sub(perfInit).String(),
+		Conn: MilliSeconds(perfInit.Sub(perfBegin)),
+		Auth: MilliSeconds(perfAuth.Sub(perfInit)),
 		Arts: perfArts,
 	})
 	if e != nil {
