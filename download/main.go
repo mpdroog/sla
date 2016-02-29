@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"sla/lib/nntp"
 	"fmt"
 	"time"
@@ -27,6 +28,7 @@ type Perf struct {
 	Conn float64
 	Auth float64
 	Arts []float64
+	KBsec []float64
 }
 
 func loadConfig(file string) (Config, error) {
@@ -90,8 +92,13 @@ func main() {
 	}
 
 	perfArts := []float64{}
+	KBsecs := []float64{}
 	lastPerf := time.Now()
 	for _, segment := range arts.File.Segments.Segment {
+		byteCount, e := strconv.ParseInt(segment.Bytes, 10, 64)
+		if e != nil {
+			panic(e)
+		}
 		conn.Article(segment.Msgid)
 		rawread := bufio.NewReader(conn.GetReader())
 
@@ -113,15 +120,21 @@ func main() {
 		}
 
 		now := time.Now()
+		diff := now.Sub(lastPerf)
+		kbSec := float64(byteCount/1024) / diff.Seconds()
+
 		if verbose {
 			fmt.Println(fmt.Sprintf(
-				"Download %s (%s bytes in %s)",
+				"Download %s (%d bytes in %s with %f KB/s)",
 				segment.Msgid,
-				segment.Bytes,
-				now.Sub(lastPerf).String(),
+				byteCount,
+				diff.String(),
+				kbSec,
 			))
 		}
-		perfArts = append(perfArts, MilliSeconds(now.Sub(lastPerf)))
+
+		KBsecs = append(KBsecs, kbSec)
+		perfArts = append(perfArts, MilliSeconds(diff))
 		lastPerf = now
 	}
 
@@ -129,6 +142,7 @@ func main() {
 		Conn: MilliSeconds(perfInit.Sub(perfBegin)),
 		Auth: MilliSeconds(perfAuth.Sub(perfInit)),
 		Arts: perfArts,
+		KBsec: KBsecs,
 	})
 	if e != nil {
 		panic(e)
