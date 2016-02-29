@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/textproto"
 	"os"
+	"sla/lib/duration"
 	"sla/lib/nntp"
 	"sla/lib/nzb"
 	"sla/lib/stream"
@@ -22,7 +23,6 @@ type Config struct {
 	User    string
 	Pass    string
 	NzbDir  string
-	Output  string
 }
 
 type Perf struct {
@@ -166,7 +166,7 @@ func main() {
 		}
 
 		KBsecs = append(KBsecs, kbSec)
-		perfArts = append(perfArts, MilliSeconds(diff))
+		perfArts = append(perfArts, duration.MilliSeconds(diff))
 		lastPerf = now
 	}
 
