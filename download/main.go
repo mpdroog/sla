@@ -182,6 +182,7 @@ func main() {
 		Auth:  MilliSeconds(perfAuth.Sub(perfInit)),
 		Arts:  perfArts,
 		KBsec: KBsecs,
+		Error: []string{},
 	}); e != nil {
 		fail(e)
 	}
