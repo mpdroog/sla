@@ -1,31 +1,31 @@
 package nntp
 
 import (
-	"net"
 	"bufio"
-	"strings"
 	"errors"
-	"log"
 	"fmt"
+	"log"
+	"net"
 	"os"
+	"strings"
 )
 
-const EOF = "\r\n" // End of File
+const EOF = "\r\n"      // End of File
 const EOM = "\r\n.\r\n" // End of multiline data-block
 var ERR_RANGE = errors.New("NNTP StatusCode > 2xx")
 
 type Client struct {
-	Name string
-	Ready bool
+	Name    string
+	Ready   bool
 	Verbose bool
-	listen string
-	L *log.Logger
+	listen  string
+	L       *log.Logger
 
 	conn net.Conn
 	r    *bufio.Reader
 	w    *bufio.Writer
 
-	BytesIn int64
+	BytesIn  int64
 	BytesOut int64
 }
 
@@ -121,8 +121,8 @@ func (c *Client) GetReader() *DotReader {
 
 func New(listen string, name string, verbose bool) *Client {
 	return &Client{
-		Name:   name,
-		listen: listen,
+		Name:    name,
+		listen:  listen,
 		Verbose: verbose,
 		// TODO: cleanup..
 		L: log.New(os.Stdout, "", log.Ldate|log.Ltime),

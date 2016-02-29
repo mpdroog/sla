@@ -1,8 +1,8 @@
 package stream
 
 import (
-	"testing"
 	"bytes"
+	"testing"
 )
 
 func TestCount(t *testing.T) {
@@ -24,5 +24,5 @@ func TestCount(t *testing.T) {
 	w.WriteString("Hello")
 	if w.Written() != 5 {
 		t.Fatal("Length should be 5")
-	}	
+	}
 }

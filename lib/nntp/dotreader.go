@@ -15,13 +15,13 @@ var END_SHORT = []byte(".\r\n")
 var testNoEOF bool
 
 type DotReader struct {
-	r     io.Reader
-	begin bool
-	done  bool
+	r        io.Reader
+	begin    bool
+	done     bool
 	shortEnd bool
 
-	buf   []byte
-	pos   int
+	buf []byte
+	pos int
 }
 
 func NewDotReader(r io.Reader, shortEnd bool) *DotReader {
@@ -42,7 +42,7 @@ func (d *DotReader) Read(b []byte) (n int, err error) {
 	// Remember last 5 bytes so we can find EOF
 	// if we receive the EOF in parts..
 	if n >= 5 {
-		d.buf = b[n-5:n]
+		d.buf = b[n-5 : n]
 		d.pos = 5
 	} else if n > 0 {
 		// TODO: User can OOM when slowly adding data?

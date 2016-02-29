@@ -32,7 +32,7 @@ func (c *Client) PostClose() error {
 }
 
 func (c *Client) Article(msgid string) error {
-	if _, e := c.Send("article <" + msgid + ">", []Expect{Expect{"201 ", false}}); e != nil {
+	if _, e := c.Send("article <"+msgid+">", []Expect{Expect{"201 ", false}}); e != nil {
 		return e
 	}
 	return nil
