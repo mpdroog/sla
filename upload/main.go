@@ -1,38 +1,38 @@
 package main
 
 import (
+	"archive/zip"
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sla/lib/nntp"
 	"sla/lib/nzb"
 	"sla/lib/stream"
 	"sla/upload/yenc"
-	"fmt"
-	"archive/zip"
-	"os"
-	"io"
-	"bytes"
-	"bufio"
-	"time"
 	"strings"
-	"io/ioutil"
-	"encoding/json"
-	"flag"
-	"path/filepath"
+	"time"
 )
 
 type Config struct {
-	Address string // server:port
-	User string
-	Pass string
-	NzbDir string
+	Address   string // server:port
+	User      string
+	Pass      string
+	NzbDir    string
 	MsgDomain string
 	UploadDir string
 }
 
 type ArtPerf struct {
-	MsgId string
-	Time int64 // duration in nanoseconds
-	Size int64
-	Speed float64 // kb/sec
+	MsgId    string
+	Time     int64 // duration in nanoseconds
+	Size     int64
+	Speed    float64 // kb/sec
 	BitSpeed float64 // kbit/sec
 }
 
@@ -68,7 +68,7 @@ func headers(subject string, msgid string) string {
 	headers += "From: Usenet.Farm" + nntp.EOF
 	headers += "Newsgroups: alt.binaries.test" + nntp.EOF
 	headers += nntp.EOF // End of header
-	return headers;
+	return headers
 }
 
 func min(a int, b int64) int {
@@ -116,7 +116,7 @@ func main() {
 			return
 		}
 		if e := ioutil.WriteFile(
-			c.NzbDir + "check.txt",
+			c.NzbDir+"check.txt",
 			[]byte("Write permission check."),
 			0400,
 		); e != nil {
@@ -226,7 +226,7 @@ func main() {
 	lastPerf := time.Now()
 
 	for enc.HasNext() {
-	 	if e := conn.Post(); e != nil {
+		if e := conn.Post(); e != nil {
 			panic(e)
 		}
 		msgid := RandStringRunes(16) + c.MsgDomain
@@ -243,7 +243,7 @@ func main() {
 		n := w.Written()
 		msgids = append(msgids, nzb.Msg{
 			Msgid: msgid,
-			Size: n,
+			Size:  n,
 		})
 
 		if e := conn.PostClose(); e != nil {
@@ -262,11 +262,11 @@ func main() {
 		}
 		kbSec := float64(n/1024) / d.Seconds()
 		artPerf = append(artPerf, ArtPerf{
-			MsgId: msgid,
-			Time: d.Nanoseconds(),
-			Size: n,
-			Speed: kbSec,     // kb/sec
-			BitSpeed: kbSec*8,// kbit/sec
+			MsgId:    msgid,
+			Time:     d.Nanoseconds(),
+			Size:     n,
+			Speed:    kbSec,     // kb/sec
+			BitSpeed: kbSec * 8, // kbit/sec
 		})
 		lastPerf = now
 	}
@@ -276,7 +276,7 @@ func main() {
 
 	xml := nzb.Build(subject, msgids, time.Now().Format(time.RFC822))
 	if e := ioutil.WriteFile(
-		c.NzbDir + time.Now().Format("2006-01-02") + ".nzb",
+		c.NzbDir+time.Now().Format("2006-01-02")+".nzb",
 		[]byte(xml), 400,
 	); e != nil {
 		panic(e)
