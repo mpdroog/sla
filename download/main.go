@@ -105,7 +105,6 @@ func main() {
 	buf := new(bytes.Buffer)
 	for _, segment := range arts.File.Segments.Segment {
 		buf.Reset()
-		byteCount := segment.Bytes
 		conn.Article(segment.Msgid)
 
 		counter := stream.NewCountReader(conn.GetReader())
@@ -120,8 +119,8 @@ func main() {
 			panic(e)
 		}
 		n := counter.ReadReset()
-		if int64(n) <= byteCount {
-			panic(fmt.Errorf("ByteCount mismatch, expect>%d recv=%d", byteCount, n))
+		if int64(n) <= segment.Bytes {
+			panic(fmt.Errorf("ByteCount mismatch, expect>%d recv=%d", segment.Bytes, n))
 		}
 
 		if !skipyenc {
@@ -132,15 +131,12 @@ func main() {
 
 		now := time.Now()
 		diff := now.Sub(lastPerf)
-		kbSec := float64(byteCount/1024) / diff.Seconds()
+		kbSec := float64(n/1024) / diff.Seconds()
 
 		if verbose {
 			fmt.Println(fmt.Sprintf(
 				"Download %s (%d bytes in %s with %f KB/s)",
-				segment.Msgid,
-				byteCount,
-				diff.String(),
-				kbSec,
+				segment.Msgid, n, diff.String(), kbSec,
 			))
 		}
 
