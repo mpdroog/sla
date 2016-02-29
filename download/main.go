@@ -46,12 +46,7 @@ func loadConfig(file string) (Config, error) {
 }
 
 func fail(e error) {
-	w, ew := os.Create(C.Output)
-	if ew != nil {
-		panic(ew)
-	}
-	defer w.Close()
-	enc := json.NewEncoder(w)
+	enc := json.NewEncoder(os.Stdout)
 
 	if ew = enc.Encode(Perf{
 		Arts: []float64{},
@@ -60,8 +55,7 @@ func fail(e error) {
 	}); ew != nil {
 		panic(ew)
 	}
-
-	panic(e)
+	os.Exit(1)
 }
 
 func main() {
@@ -170,16 +164,10 @@ func main() {
 		lastPerf = now
 	}
 
-	w, e := os.Create(C.Output)
-	if e != nil {
-		fail(e)
-	}
-	defer w.Close()
-	enc := json.NewEncoder(w)
-
+	enc := json.NewEncoder(os.Stdout)
 	if e := enc.Encode(Perf{
-		Conn:  MilliSeconds(perfInit.Sub(perfBegin)),
-		Auth:  MilliSeconds(perfAuth.Sub(perfInit)),
+		Conn:  duration.MilliSeconds(perfInit.Sub(perfBegin)),
+		Auth:  duration.MilliSeconds(perfAuth.Sub(perfInit)),
 		Arts:  perfArts,
 		KBsec: KBsecs,
 		Error: []string{},

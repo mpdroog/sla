@@ -298,8 +298,8 @@ func main() {
 
 	jenc := json.NewEncoder(os.Stdout)
 	if e := jenc.Encode(Perf{
-		Conn: duration.Milliseconds(perfInit.Sub(perfBegin)),
-		Auth: duration.Milliseconds(perfAuth.Sub(perfInit)),
+		Conn: duration.MilliSeconds(perfInit.Sub(perfBegin)),
+		Auth: duration.MilliSeconds(perfAuth.Sub(perfInit)),
 		Arts: artPerf,
 	}); e != nil {
 		fail(e)
