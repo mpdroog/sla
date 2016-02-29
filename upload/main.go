@@ -301,6 +301,7 @@ func main() {
 		Conn: duration.MilliSeconds(perfInit.Sub(perfBegin)),
 		Auth: duration.MilliSeconds(perfAuth.Sub(perfInit)),
 		Arts: artPerf,
+		Error: []string{},
 	}); e != nil {
 		fail(e)
 	}
