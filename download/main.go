@@ -1,33 +1,33 @@
 package main
 
 import (
-	"strconv"
-	"sla/lib/nntp"
-	"fmt"
-	"time"
-	"strings"
-	"flag"
-	"encoding/json"
-	"os"
-	"sla/lib/nzb"
-	"net/textproto"
-	"io"
 	"bufio"
 	"bytes"
+	"encoding/json"
+	"flag"
+	"fmt"
 	"github.com/chrisfarms/yenc"
+	"io"
+	"net/textproto"
+	"os"
+	"sla/lib/nntp"
+	"sla/lib/nzb"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type Config struct {
 	Address string // server:port
-	User string
-	Pass string
-	NzbDir string
+	User    string
+	Pass    string
+	NzbDir  string
 }
 
 type Perf struct {
-	Conn float64
-	Auth float64
-	Arts []float64
+	Conn  float64
+	Auth  float64
+	Arts  []float64
 	KBsec []float64
 }
 
@@ -79,7 +79,7 @@ func main() {
 		fmt.Println("Connecting to nntp..")
 	}
 	conn := nntp.New(c.Address, "1", verbose)
-	conn.Verbose = verbose	
+	conn.Verbose = verbose
 	perfBegin := time.Now()
 	var perfInit, perfAuth time.Time
 	{
@@ -116,8 +116,7 @@ func main() {
 		}
 
 		if !skipyenc {
-			_, e = yenc.Decode(buf)
-			if e != nil {
+			if _, e = yenc.Decode(buf); e != nil {
 				panic(e)
 			}
 		}
@@ -142,9 +141,9 @@ func main() {
 	}
 
 	stat, e := json.Marshal(Perf{
-		Conn: MilliSeconds(perfInit.Sub(perfBegin)),
-		Auth: MilliSeconds(perfAuth.Sub(perfInit)),
-		Arts: perfArts,
+		Conn:  MilliSeconds(perfInit.Sub(perfBegin)),
+		Auth:  MilliSeconds(perfAuth.Sub(perfInit)),
+		Arts:  perfArts,
 		KBsec: KBsecs,
 	})
 	if e != nil {
