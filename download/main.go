@@ -48,7 +48,7 @@ func loadConfig(file string) (Config, error) {
 func fail(e error) {
 	enc := json.NewEncoder(os.Stdout)
 
-	if ew = enc.Encode(Perf{
+	if ew := enc.Encode(Perf{
 		Arts: []float64{},
 		KBsec: []float64{},
 		Error: []string{e.Error()},
