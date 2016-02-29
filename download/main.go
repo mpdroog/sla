@@ -12,7 +12,6 @@ import (
 	"os"
 	"sla/lib/nntp"
 	"sla/lib/nzb"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -102,11 +101,10 @@ func main() {
 	perfArts := []float64{}
 	KBsecs := []float64{}
 	lastPerf := time.Now()
+	buf := new(bytes.Buffer)
 	for _, segment := range arts.File.Segments.Segment {
-		byteCount, e := strconv.ParseInt(segment.Bytes, 10, 64)
-		if e != nil {
-			panic(e)
-		}
+		buf.Reset()
+		byteCount := segment.Bytes
 		conn.Article(segment.Msgid)
 		rawread := bufio.NewReader(conn.GetReader())
 
@@ -115,7 +113,6 @@ func main() {
 			panic(e)
 		}
 
-		buf := new(bytes.Buffer)
 		if _, e := io.Copy(buf, rawread); e != nil {
 			panic(e)
 		}

@@ -1,22 +1,21 @@
 package nzb
 
 import (
-	"io"
-	"fmt"
 	"encoding/xml"
-	"os"
+	"fmt"
+	"io"
 	"sort"
 )
 
 type Msg struct {
 	Msgid string
-	Size int64
+	Size  int64
 }
 
 type Segment struct {
-	Bytes string `xml:"bytes,attr"`
-	Number string `xml:"number,attr"`
-	Msgid string `xml:",innerxml"`
+	Bytes  int64  `xml:"bytes,attr"`
+	Number int    `xml:"number,attr"`
+	Msgid  string `xml:",innerxml"`
 }
 type Nzb struct {
 	File struct {
