@@ -38,8 +38,8 @@ type ArtPerf struct {
 }
 
 type Perf struct {
-	Conn string
-	Auth string
+	Conn float64
+	Auth float64
 	Arts []ArtPerf
 	Error []string
 }
@@ -99,7 +99,7 @@ func fail(e error) {
 		panic(ew)
 	}
 
-	panic(e)
+	os.Exit(1)
 }
 
 func main() {
@@ -298,8 +298,8 @@ func main() {
 
 	jenc := json.NewEncoder(os.Stdout)
 	if e := jenc.Encode(Perf{
-		Conn: perfInit.Sub(perfBegin).String(),
-		Auth: perfAuth.Sub(perfInit).String(),
+		Conn: duration.Milliseconds(perfInit.Sub(perfBegin)),
+		Auth: duration.Milliseconds(perfAuth.Sub(perfInit)),
 		Arts: artPerf,
 	}); e != nil {
 		fail(e)
