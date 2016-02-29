@@ -61,6 +61,9 @@ func main() {
 		// default to today
 		date = time.Now().Format("2006-01-02")
 	}
+	if verbose {
+		fmt.Printf("Config=%+v Date=%+v\n", c, date)
+	}
 
 	// Force valid date pattern
 	if _, e := time.Parse("2006-01-02", date); e != nil {
