@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sla/lib/duration"
 	"sla/lib/nntp"
 	"sla/lib/nzb"
 	"sla/lib/stream"
@@ -30,7 +31,7 @@ type Config struct {
 
 type ArtPerf struct {
 	MsgId    string
-	Time     int64 // duration in nanoseconds
+	Time     float64 // duration in ms
 	Size     int64
 	Speed    float64 // kb/sec
 	BitSpeed float64 // kbit/sec
@@ -40,6 +41,7 @@ type Perf struct {
 	Conn string
 	Auth string
 	Arts []ArtPerf
+	Error []string
 }
 
 func zipAdd(w *zip.Writer, name string, path string) error {
@@ -88,6 +90,18 @@ func loadConfig(file string) (Config, error) {
 	return c, e
 }
 
+func fail(e error) {
+	enc := json.NewEncoder(os.Stdout)
+	if ew := enc.Encode(Perf{
+		Arts: []ArtPerf{},
+		Error: []string{e.Error()},
+	}); ew != nil {
+		panic(ew)
+	}
+
+	panic(e)
+}
+
 func main() {
 	var verbose bool
 	var configPath string
@@ -98,7 +112,7 @@ func main() {
 
 	c, e := loadConfig(configPath)
 	if e != nil {
-		panic(e)
+		fail(e)
 	}
 	if !strings.HasSuffix(c.NzbDir, "/") {
 		c.NzbDir += "/"
@@ -108,7 +122,7 @@ func main() {
 	{
 		stat, e := os.Stat(c.NzbDir)
 		if e != nil {
-			panic(e)
+			fail(e)
 		}
 		if !stat.IsDir() {
 			fmt.Println("Not a dir: " + c.NzbDir)
@@ -120,17 +134,17 @@ func main() {
 			[]byte("Write permission check."),
 			0400,
 		); e != nil {
-			panic(e)
+			fail(e)
 		}
 		if e := os.Remove(c.NzbDir + "check.txt"); e != nil {
-			panic(e)
+			fail(e)
 		}
 	}
 	// Permission check uploaddir
 	{
 		stat, e := os.Stat(c.UploadDir)
 		if e != nil {
-			panic(e)
+			fail(e)
 		}
 		if !stat.IsDir() {
 			fmt.Println("Not a dir: " + c.UploadDir)
@@ -174,21 +188,21 @@ func main() {
 			return nil
 		})
 		if e != nil {
-			panic(e)
+			fail(e)
 		}
 
 		f, e := w.Create("unique.txt")
 		if e != nil {
-			panic(e)
+			fail(e)
 		}
 		f.Write([]byte(RandStringRunes(16)))
 
 		if e := w.Close(); e != nil {
-			panic(e)
+			fail(e)
 		}
 
 		if _, err := enc.Write(buf.Bytes()); err != nil {
-			panic(err)
+			fail(err)
 		}
 		partCount = enc.Parts()
 	}
@@ -212,11 +226,11 @@ func main() {
 	{
 		defer conn.Close()
 		if e := conn.Init(); e != nil {
-			panic(e)
+			fail(e)
 		}
 		perfInit = time.Now()
 		if e := conn.Auth(c.User, c.Pass); e != nil {
-			panic(e)
+			fail(e)
 		}
 		perfAuth = time.Now()
 	}
@@ -227,18 +241,18 @@ func main() {
 
 	for enc.HasNext() {
 		if e := conn.Post(); e != nil {
-			panic(e)
+			fail(e)
 		}
 		msgid := RandStringRunes(16) + c.MsgDomain
 
 		w := stream.NewCountWriter(conn.GetWriter())
 		if _, e := w.WriteString(headers(subject, msgid)); e != nil {
-			panic(e)
+			fail(e)
 		}
 		w.ResetWritten()
 
 		if _, e := enc.EncodePart(w); e != nil {
-			panic(e)
+			fail(e)
 		}
 		n := w.Written()
 		msgids = append(msgids, nzb.Msg{
@@ -247,7 +261,7 @@ func main() {
 		})
 
 		if e := conn.PostClose(); e != nil {
-			panic(e)
+			fail(e)
 		}
 
 		// Stats
@@ -263,7 +277,7 @@ func main() {
 		kbSec := float64(n/1024) / d.Seconds()
 		artPerf = append(artPerf, ArtPerf{
 			MsgId:    msgid,
-			Time:     d.Nanoseconds(),
+			Time:     duration.MilliSeconds(d),
 			Size:     n,
 			Speed:    kbSec,     // kb/sec
 			BitSpeed: kbSec * 8, // kbit/sec
@@ -271,7 +285,7 @@ func main() {
 		lastPerf = now
 	}
 	if err := enc.Close(); err != nil {
-		panic(err)
+		fail(err)
 	}
 
 	xml := nzb.Build(subject, msgids, time.Now().Format(time.RFC822))
@@ -279,18 +293,15 @@ func main() {
 		c.NzbDir+time.Now().Format("2006-01-02")+".nzb",
 		[]byte(xml), 400,
 	); e != nil {
-		panic(e)
+		fail(e)
 	}
 
-	stat, e := json.Marshal(Perf{
+	jenc := json.NewEncoder(os.Stdout)
+	if e := jenc.Encode(Perf{
 		Conn: perfInit.Sub(perfBegin).String(),
 		Auth: perfAuth.Sub(perfInit).String(),
 		Arts: artPerf,
-	})
-	if e != nil {
-		panic(e)
-	}
-	if _, e := os.Stdout.Write(stat); e != nil {
-		panic(e)
+	}); e != nil {
+		fail(e)
 	}
 }
