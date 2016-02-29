@@ -12,6 +12,7 @@ import (
 	"os"
 	"sla/lib/nntp"
 	"sla/lib/nzb"
+	"sla/lib/stream"
 	"strings"
 	"time"
 )
@@ -106,7 +107,9 @@ func main() {
 		buf.Reset()
 		byteCount := segment.Bytes
 		conn.Article(segment.Msgid)
-		rawread := bufio.NewReader(conn.GetReader())
+
+		counter := stream.NewCountReader(conn.GetReader())
+		rawread := bufio.NewReader(counter)
 
 		_, e = textproto.NewReader(rawread).ReadMIMEHeader()
 		if e != nil {
@@ -115,6 +118,10 @@ func main() {
 
 		if _, e := io.Copy(buf, rawread); e != nil {
 			panic(e)
+		}
+		n := counter.ReadReset()
+		if int64(n) <= byteCount {
+			panic(fmt.Errorf("ByteCount mismatch, expect>%d recv=%d", byteCount, n))
 		}
 
 		if !skipyenc {
