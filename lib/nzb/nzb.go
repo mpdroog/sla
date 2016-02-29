@@ -67,16 +67,3 @@ func Read(f io.Reader) (Nzb, error) {
 	}
 	return n, nil
 }
-
-func Open(path string) (Nzb, error) {
-	n := Nzb{}
-	f, e := os.Open(path)
-	if e != nil {
-		return n, e
-	}
-	dec := xml.NewDecoder(f)
-	if e := dec.Decode(&n); e != nil {
-		return n, e
-	}
-	return n, nil
-}

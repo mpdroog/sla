@@ -70,7 +70,12 @@ func main() {
 		panic(e)
 	}
 
-	arts, e := nzb.Open(c.NzbDir + date + ".nzb")
+	fd, e := os.Open(c.NzbDir + date + ".nzb")
+	if e != nil {
+		panic(e)
+	}
+	defer fd.Close()
+	arts, e := nzb.Read(fd)
 	if e != nil {
 		panic(e)
 	}
