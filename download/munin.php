@@ -43,9 +43,16 @@ echo sprintf("Conn.value %s\n", $stat['Conn']);
 echo sprintf("Auth.value %s\n", $stat['Auth']);
 
 // Calc average replytime per article
-$arts = count($stat['Arts']);
-$sum = 0;
-foreach ($stat['Arts'] as $art) {
-	$sum += $art;
+{
+	$arts = count($stat['Arts']);
+	$sum = 0;
+	foreach ($stat['Arts'] as $art) {
+		$sum += $art;
+	}
+
+	$artsec = 0;
+	if ($arts > 0) {
+		$artsec = round($sum/$arts, 2);
+	}
+	echo sprintf("Arts.value %s\n", $artsec);
 }
-echo sprintf("Arts.value %s\n", round($sum/$arts, 2));
