@@ -19,7 +19,7 @@ if (! in_array($type, ["default", "config"])) {
 	exit(1);
 }
 
-if ($argv[1] === "config") {
+if ($type === "config") {
 	echo "graph_title SLA Download speed results
 graph_scale no
 graph_category sla
